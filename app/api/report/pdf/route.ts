@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     await browser.close()
 
     // Return PDF
-    return new NextResponse(pdf, {
+    return new Response(Buffer.from(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="security-assessment-${report.product?.productName || 'report'}-${new Date().toISOString().split('T')[0]}.pdf"`,
