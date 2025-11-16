@@ -6,9 +6,9 @@ Reputation Recon is a solution application developed for the Junction 2025 hacka
 
 ## Demo
 
-<iframe src="https://drive.google.com/file/d/1hRxlhVysSAICNo671eyXtufCd7nTfUlI/preview" width="640" height="480" allow="autoplay"></iframe>
+**Video Demonstration:** [Watch the demo on Google Drive](https://drive.google.com/file/d/1hRxlhVysSAICNo671eyXtufCd7nTfUlI/view?usp=sharing)
 
-[Watch on Google Drive](https://drive.google.com/file/d/1hRxlhVysSAICNo671eyXtufCd7nTfUlI/view?usp=sharing)
+> Note: For the best viewing experience, the video can be embedded on platforms that support HTML iframes. On GitHub, please use the link above to view the demonstration.
 
 ## About the App
 
