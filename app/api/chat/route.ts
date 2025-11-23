@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAssessmentWorkflow } from "@/lib/workflow/assessment-workflow"
-import { withAuth } from "@/lib/auth/middleware"
+import { withAuth, AuthRequest } from "@/lib/auth/middleware"
+import { db } from "@/lib/db"
+import { reports } from "@/lib/db/schema"
 
 // Initializing the assessment workflow
 const app = createAssessmentWorkflow()
@@ -53,6 +55,23 @@ export const POST = withAuth(async (req) => {
             input,
             progressCallback: sendProgress,
           })
+
+          // Save the report to the database
+          try {
+            const user = (req as AuthRequest).user
+            if (user?.userId) {
+              await db.insert(reports).values({
+                userId: user.userId,
+                input,
+                reportData: result.finalReport,
+              })
+              sendProgress("Report saved successfully")
+            }
+          } catch (dbError) {
+            console.error("Error saving report to database:", dbError)
+            // Don't fail the request if saving fails, just log it
+            sendProgress("Warning: Report could not be saved to database")
+          }
 
           sendComplete(result.finalReport)
         } catch (error) {

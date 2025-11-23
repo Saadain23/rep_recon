@@ -347,7 +347,7 @@ export function AssessmentReportDisplay({ report }: { report: any }) {
               {report.product && (
                 <div className="space-y-2">
                   <div>
-                    <p className="font-semibold text-base">{report.product.productName || "Unknown Product"}</p>
+                    <p className="text-3xl font-semibold flex items-center gap-2"> <img src={getFaviconUrl(report.product.websiteUrl)} alt={`${report.product.productName} logo`} className="w-5 h-5 shrink-0 rounded" />  {report.product.productName || "Unknown Product"}</p>
                     <p className="text-muted-foreground">by {report.product.vendorName || "Unknown Vendor"}</p>
                   </div>
                   {report.product.websiteUrl && (
