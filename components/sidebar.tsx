@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Sparkles, FileText } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Sparkles, FileText, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
+import { Button } from "@/components/ui/button";
 
 interface SidebarItem {
   title: string;
@@ -29,21 +31,34 @@ const sidebarItems: SidebarItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-50 h-screen w-64 border-r bg-card transition-colors duration-300">
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         <div className="flex flex-col items-center justify-center px-6 pt-4">
-          <div className="logo-container h-36 w-auto">
+          <div className="logo-container flex items-center gap-3">
             <Image
-              src="/withsecure_logo.webp"
-              alt="WithSecure Logo"
-              width={200}
-              height={56}
-              className="h-36 w-80 object-contain"
-              priority
+              src="/rep_logo.png"
+              alt="Rep Recon Logo"
+              width={40}
+              height={40}
+              className="logo-image object-contain"
             />
+            <h1 className="text-2xl text-foreground">
+              Rep Recon
+            </h1>
           </div>
         </div>
 
@@ -78,9 +93,22 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Theme Toggle at Bottom */}
-        <div className="p-4">
-          <ThemeToggle />
+        {/* User Menu, Theme Toggle and Logout at Bottom */}
+        <div className="border-t pt-3">
+          <UserMenu />
+          <div className="flex items-center justify-between gap-2 px-4 pb-4">
+            <Button
+              variant="outline"
+              size="default"
+              className="h-9 bg-black dark:bg-white text-white dark:text-black border border-input hover:opacity-90"
+              onClick={handleLogout}
+              aria-label="Logout"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </aside>

@@ -1,30 +1,25 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createAssessmentWorkflow } from "@/lib/workflow/assessment-workflow"
+import { withAuth } from "@/lib/auth/middleware"
 
 // Initializing the assessment workflow
 const app = createAssessmentWorkflow()
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req) => {
   try {
     const { input } = await req.json()
 
     if (!input) {
-      return new Response(
-        JSON.stringify({ error: "Application name or URL is required" }),
-        { 
-          status: 400,
-          headers: { "Content-Type": "application/json" }
-        }
+      return NextResponse.json(
+        { error: "Application name or URL is required" },
+        { status: 400 }
       )
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }),
-        { 
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        }
+      return NextResponse.json(
+        { error: "ANTHROPIC_API_KEY is not configured" },
+        { status: 500 }
       )
     }
 
@@ -68,7 +63,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return new Response(stream, {
+    return new NextResponse(stream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
@@ -77,15 +72,12 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error("Error setting up SSE:", error)
-    return new Response(
-      JSON.stringify({ 
+    return NextResponse.json(
+      { 
         error: "Internal server error", 
         details: error instanceof Error ? error.message : "Unknown error" 
-      }),
-      { 
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      }
+      },
+      { status: 500 }
     )
   }
-}
+})

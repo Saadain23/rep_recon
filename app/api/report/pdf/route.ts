@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import puppeteer from "puppeteer"
 import { readFile } from "fs/promises"
 import { join } from "path"
+import { withAuth } from "@/lib/auth/middleware"
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req) => {
   try {
     const report = await req.json()
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 function generateReportHTML(report: any, logoBase64: string = ''): string {
   // Helper to escape HTML

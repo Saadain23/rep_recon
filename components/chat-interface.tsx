@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Send, Bot, User} from "lucide-react"
+import Image from "next/image"
+import { Send, User} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -176,10 +177,16 @@ export function ChatInterface() {
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <div className="text-center space-y-6 max-w-2xl w-full mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-              <Bot className="w-8 h-8 text-primary" />
+              <Image
+                src="/rep_logo.png"
+                alt="Rep Recon Logo"
+                width={100}
+                height={100}
+                className="logo-image object-contain"
+              />
             </div>
-            <h2 className="text-3xl font-bold">Welcome to Security Assessment Agent</h2>
-            <p className="text-lg text-muted-foreground">
+            <h2 className="text-3xl">Welcome to Security Assessment Agent</h2>
+            <p className="text-base text-muted-foreground">
               Enter an application name or URL to receive a comprehensive security assessment including entity resolution, CVE analysis, compliance review, and risk scoring.
             </p>
           </div>
@@ -192,17 +199,18 @@ export function ChatInterface() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Enter application name or URL (e.g., 'Slack' or 'https://slack.com')..."
-                  className="min-h-[60px] max-h-[200px] resize-none rounded-2xl pr-[72px] py-3"
+                  className="min-h-[60px] max-h-[200px] resize-none rounded-2xl pr-14 py-4 px-4 text-base focus:ring-2 focus:ring-offset-2 transition-all"
                   disabled={isLoading}
                 />
                 <Button
                   type="submit"
                   size="icon"
                   className={cn(
-                    "absolute right-2 bottom-2 h-9 w-9 rounded-lg shrink-0",
-                    "bg-foreground text-background hover:bg-foreground/90",
-                    "dark:bg-background dark:text-foreground dark:hover:bg-background/90",
-                    "transition-colors"
+                    "absolute right-3 bottom-3 h-10 w-10 rounded-xl shrink-0",
+                    "bg-black text-white hover:bg-black/80",
+                    "dark:bg-white dark:text-black dark:hover:bg-white/90",
+                    "transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                    "shadow-sm hover:shadow-md"
                   )}
                   disabled={isLoading || !input.trim()}
                 >
@@ -227,7 +235,13 @@ export function ChatInterface() {
                 >
                   {message.role === "assistant" && (
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-primary" />
+                      <Image
+                        src="/rep_logo.png"
+                        alt="Rep Recon Logo"
+                        width={20}
+                        height={20}
+                        className="logo-image object-contain"
+                      />
                     </div>
                   )}
                   <div
@@ -254,7 +268,13 @@ export function ChatInterface() {
               {isLoading && (
                 <div className="flex gap-4 justify-start">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-primary" />
+                    <Image
+                      src="/rep_logo.png"
+                      alt="Rep Recon Logo"
+                      width={20}
+                      height={20}
+                      className="logo-image object-contain"
+                    />
                   </div>
                   <div className="rounded-2xl px-4 py-3 bg-muted">
                     <div className="space-y-2">
