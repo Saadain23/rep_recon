@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { Send, User} from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Send, User, FileText, Award, AlertCircle, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -16,15 +17,149 @@ interface Message {
   report?: any
 }
 
+interface ReportSuggestion {
+  id: string
+  input: string
+  productName: string
+  vendorName: string
+  websiteUrl?: string
+  trustScore: number
+  riskLevel: string
+  createdAt: string
+}
+
 export function ChatInterface() {
+  const router = useRouter()
   const [messages, setMessages] = React.useState<Message[]>([])
   const [input, setInput] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [progressMessage, setProgressMessage] = React.useState<string>("")
+  const [suggestions, setSuggestions] = React.useState<ReportSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = React.useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = React.useState(-1)
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const suggestionsRef = React.useRef<HTMLDivElement>(null)
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   const hasMessages = messages.length > 0
+
+  // Helper function to get domain from URL
+  const getDomainFromUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.hostname.replace('www.', '')
+    } catch {
+      return url
+    }
+  }
+
+  // Helper function to get favicon URL
+  const getFaviconUrl = (url: string): string => {
+    const domain = getDomainFromUrl(url)
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  }
+
+  // Debounced search for suggestions
+  React.useEffect(() => {
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Don't search if input is too short or if loading
+    if (input.trim().length < 2 || isLoading) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    // Set loading state
+    setIsSearchingSuggestions(true)
+
+    // Debounce the search
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/reports/search?q=${encodeURIComponent(input.trim())}&limit=5`)
+        if (!response.ok) {
+          throw new Error("Failed to search")
+        }
+        const data = await response.json()
+        setSuggestions(data.suggestions || [])
+        setShowSuggestions((data.suggestions || []).length > 0)
+        setSelectedSuggestionIndex(-1)
+      } catch (error) {
+        console.error("Error searching suggestions:", error)
+        setSuggestions([])
+        setShowSuggestions(false)
+      } finally {
+        setIsSearchingSuggestions(false)
+      }
+    }, 300) // 300ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [input, isLoading])
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = (suggestion: ReportSuggestion) => {
+    setInput("")
+    setSuggestions([])
+    setShowSuggestions(false)
+    router.push(`/reports/${suggestion.id}`)
+  }
+
+  // Handle keyboard navigation in suggestions
+  const handleSuggestionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        handleSubmit(e)
+      }
+      return
+    }
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        )
+        break
+      case "ArrowUp":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1))
+        break
+      case "Enter":
+        if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+          e.preventDefault()
+          handleSelectSuggestion(suggestions[selectedSuggestionIndex])
+        } else if (!e.shiftKey) {
+          e.preventDefault()
+          handleSubmit(e)
+        }
+        break
+      case "Escape":
+        e.preventDefault()
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
+        break
+    }
+  }
+
+  // Scroll selected suggestion into view
+  React.useEffect(() => {
+    if (selectedSuggestionIndex >= 0 && suggestionsRef.current) {
+      const selectedElement = suggestionsRef.current.children[selectedSuggestionIndex] as HTMLElement
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: "nearest", behavior: "smooth" })
+      }
+    }
+  }, [selectedSuggestionIndex])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -164,10 +299,29 @@ export function ChatInterface() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e)
+    handleSuggestionKeyDown(e)
+  }
+
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel?.toLowerCase()) {
+      case "low":
+        return "text-emerald-600 dark:text-emerald-400"
+      case "medium":
+        return "text-amber-600 dark:text-amber-400"
+      case "high":
+        return "text-orange-600 dark:text-orange-400"
+      case "critical":
+        return "text-red-600 dark:text-red-400"
+      default:
+        return "text-muted-foreground"
     }
+  }
+
+  const getTrustScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-600 dark:text-emerald-400"
+    if (score >= 60) return "text-amber-600 dark:text-amber-400"
+    if (score >= 40) return "text-orange-600 dark:text-orange-400"
+    return "text-red-600 dark:text-red-400"
   }
 
   return (
@@ -198,6 +352,25 @@ export function ChatInterface() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onFocus={() => {
+                    if (suggestions.length > 0) {
+                      setShowSuggestions(true)
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // Delay hiding to allow click on suggestion
+                    const target = e.currentTarget
+                    setTimeout(() => {
+                      if (target && !target.contains(document.activeElement)) {
+                        // Also check if active element is not in suggestions dropdown
+                        const activeElement = document.activeElement
+                        const suggestionsElement = suggestionsRef.current
+                        if (!suggestionsElement?.contains(activeElement)) {
+                          setShowSuggestions(false)
+                        }
+                      }
+                    }, 200)
+                  }}
                   placeholder="Enter application name or URL (e.g., 'Slack' or 'https://slack.com')..."
                   className="min-h-[60px] max-h-[200px] resize-none rounded-2xl pr-14 py-4 px-4 text-base focus:ring-2 focus:ring-offset-2 transition-all"
                   disabled={isLoading}
@@ -216,6 +389,80 @@ export function ChatInterface() {
                 >
                   <Send className="w-4 h-4" />
                 </Button>
+                {/* Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute top-full left-0 right-0 mt-2 bg-background border rounded-xl shadow-lg z-50 max-h-[400px] overflow-y-auto backdrop-blur-sm"
+                    style={{ backgroundColor: 'hsl(var(--background))' }}
+                  >
+                    <div className="p-2">
+                      <div className="text-xs font-medium text-muted-foreground px-3 py-2 mb-1">
+                        Existing Reports
+                      </div>
+                      {suggestions.map((suggestion, index) => (
+                        <div
+                          key={suggestion.id}
+                          onClick={() => handleSelectSuggestion(suggestion)}
+                          onMouseDown={(e) => {
+                            // Prevent blur event on textarea when clicking suggestion
+                            e.preventDefault()
+                          }}
+                          onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
+                            "hover:bg-muted/50",
+                            selectedSuggestionIndex === index && "bg-muted"
+                          )}
+                        >
+                          {suggestion.websiteUrl ? (
+                            <img
+                              src={getFaviconUrl(suggestion.websiteUrl)}
+                              alt={`${suggestion.productName} logo`}
+                              className="w-8 h-8 shrink-0 rounded"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 shrink-0 rounded bg-muted flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm truncate">
+                                {suggestion.productName}
+                              </p>
+                            </div>
+                            {suggestion.vendorName && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                by {suggestion.vendorName}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <Award className="w-3 h-3 text-muted-foreground" />
+                                <span className={cn("text-xs font-semibold", getTrustScoreColor(suggestion.trustScore))}>
+                                  {suggestion.trustScore}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <AlertCircle className="w-3 h-3 text-muted-foreground" />
+                                <span className={cn("text-xs font-medium capitalize", getRiskColor(suggestion.riskLevel))}>
+                                  {suggestion.riskLevel}
+                                </span>
+                              </div>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           </div>
@@ -301,6 +548,25 @@ export function ChatInterface() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onFocus={() => {
+                    if (suggestions.length > 0) {
+                      setShowSuggestions(true)
+                    }
+                  }}
+                  onBlur={(e) => {
+                    // Delay hiding to allow click on suggestion
+                    const target = e.currentTarget
+                    setTimeout(() => {
+                      if (target && !target.contains(document.activeElement)) {
+                        // Also check if active element is not in suggestions dropdown
+                        const activeElement = document.activeElement
+                        const suggestionsElement = suggestionsRef.current
+                        if (!suggestionsElement?.contains(activeElement)) {
+                          setShowSuggestions(false)
+                        }
+                      }
+                    }, 200)
+                  }}
                   placeholder="Enter application name or URL (e.g., 'Slack' or 'https://slack.com')..."
                   className="min-h-[60px] max-h-[200px] resize-none rounded-2xl pr-[72px] py-3"
                   disabled={isLoading}
@@ -318,6 +584,80 @@ export function ChatInterface() {
                 >
                   <Send className="w-4 h-4" />
                 </Button>
+                {/* Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-xl shadow-lg z-50 max-h-[400px] overflow-y-auto backdrop-blur-sm"
+                    style={{ backgroundColor: 'hsl(var(--background))' }}
+                  >
+                    <div className="p-2">
+                      <div className="text-xs font-medium text-muted-foreground px-3 py-2 mb-1">
+                        Existing Reports
+                      </div>
+                      {suggestions.map((suggestion, index) => (
+                        <div
+                          key={suggestion.id}
+                          onClick={() => handleSelectSuggestion(suggestion)}
+                          onMouseDown={(e) => {
+                            // Prevent blur event on textarea when clicking suggestion
+                            e.preventDefault()
+                          }}
+                          onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
+                            "hover:bg-muted/50",
+                            selectedSuggestionIndex === index && "bg-muted"
+                          )}
+                        >
+                          {suggestion.websiteUrl ? (
+                            <img
+                              src={getFaviconUrl(suggestion.websiteUrl)}
+                              alt={`${suggestion.productName} logo`}
+                              className="w-8 h-8 shrink-0 rounded"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 shrink-0 rounded bg-muted flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm truncate">
+                                {suggestion.productName}
+                              </p>
+                            </div>
+                            {suggestion.vendorName && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                by {suggestion.vendorName}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <Award className="w-3 h-3 text-muted-foreground" />
+                                <span className={cn("text-xs font-semibold", getTrustScoreColor(suggestion.trustScore))}>
+                                  {suggestion.trustScore}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <AlertCircle className="w-3 h-3 text-muted-foreground" />
+                                <span className={cn("text-xs font-medium capitalize", getRiskColor(suggestion.riskLevel))}>
+                                  {suggestion.riskLevel}
+                                </span>
+                              </div>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           </div>
