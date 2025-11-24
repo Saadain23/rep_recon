@@ -65,7 +65,7 @@ export const POST = withAuth(async (req) => {
     await browser.close()
 
     // Return PDF
-    return new Response(Buffer.from(pdf), {
+    return new NextResponse(Buffer.from(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="security-assessment-${report.product?.productName || 'report'}-${new Date().toISOString().split('T')[0]}.pdf"`,
