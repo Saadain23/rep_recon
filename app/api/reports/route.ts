@@ -6,14 +6,6 @@ import { eq, desc, ilike, or, sql, and } from "drizzle-orm"
 
 export const GET = withAuth(async (req: AuthRequest) => {
   try {
-    const user = req.user
-    if (!user?.userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
     // Get query parameters
     const searchParams = req.nextUrl.searchParams
     const page = parseInt(searchParams.get("page") || "1", 10)
@@ -21,32 +13,29 @@ export const GET = withAuth(async (req: AuthRequest) => {
     const search = searchParams.get("search") || ""
     const offset = (page - 1) * limit
 
-    // Build where condition
-    let whereCondition = eq(reports.userId, user.userId)
-
+    // Build where condition - reports are now visible to all authenticated users
     // Add search condition if provided
-    if (search) {
-      const searchPattern = `%${search}%`
-      whereCondition = and(
-        whereCondition,
-        or(
-          ilike(reports.input, searchPattern),
-          sql`${reports.reportData}::text ILIKE ${searchPattern}`
+    const whereCondition = search
+      ? or(
+          ilike(reports.input, `%${search}%`),
+          sql`${reports.reportData}::text ILIKE ${`%${search}%`}`
         )!
-      )!
-    }
+      : undefined
 
     // Get total count for pagination
-    const totalCountResult = await db
+    const countQuery = db
       .select({ count: sql<number>`count(*)` })
       .from(reports)
-      .where(whereCondition)
+    
+    const totalCountResult = whereCondition
+      ? await countQuery.where(whereCondition)
+      : await countQuery
 
     const totalCount = Number(totalCountResult[0]?.count || 0)
     const totalPages = Math.ceil(totalCount / limit)
 
     // Get reports with pagination
-    const reportsList = await db
+    const reportsQuery = db
       .select({
         id: reports.id,
         input: reports.input,
@@ -55,10 +44,10 @@ export const GET = withAuth(async (req: AuthRequest) => {
         updatedAt: reports.updatedAt,
       })
       .from(reports)
-      .where(whereCondition)
-      .orderBy(desc(reports.createdAt))
-      .limit(limit)
-      .offset(offset)
+
+    const reportsList = whereCondition
+      ? await reportsQuery.where(whereCondition).orderBy(desc(reports.createdAt)).limit(limit).offset(offset)
+      : await reportsQuery.orderBy(desc(reports.createdAt)).limit(limit).offset(offset)
 
     // Extract product name from reportData for easier display
     const reportsWithMetadata = reportsList.map((report) => {

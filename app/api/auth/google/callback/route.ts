@@ -124,8 +124,8 @@ export async function GET(req: NextRequest) {
       expiresAt,
     });
 
-    // Redirect to home with cookie set
-    const response = NextResponse.redirect(new URL("/", req.nextUrl.origin));
+    // Redirect to assessment agent (chat page) with cookie set
+    const response = NextResponse.redirect(new URL("/assessment-agent", req.nextUrl.origin));
     response.cookies.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

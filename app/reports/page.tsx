@@ -138,7 +138,7 @@ export default function ReportsPage() {
               Reports
             </h1>
             <p className="mt-2 text-muted-foreground">
-              View and manage your security assessment reports
+              Browse all security assessment reports
             </p>
           </div>
         </div>

@@ -51,8 +51,8 @@ function LoginForm() {
         return;
       }
 
-      // Redirect to home after successful login
-      window.location.href = "/";
+      // Redirect to assessment agent (chat page) after successful login
+      window.location.href = "/assessment-agent";
     } catch (err) {
       setError("An error occurred. Please try again.");
       setLoading(false);
@@ -78,6 +78,13 @@ function LoginForm() {
           <ThemeToggle />
         </div>
         <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/rep_logo.png" 
+              alt="Rep Recon Logo" 
+              className="h-16 w-auto object-contain border border-gray-300 dark:border-gray-600 rounded-lg"
+            />
+          </div>
           <h1 className="text-3xl font-bold">Rep Recon</h1>
           <p className="mt-2 text-muted-foreground">Sign in to your account</p>
         </div>

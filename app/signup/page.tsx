@@ -63,6 +63,13 @@ export default function SignupPage() {
           <ThemeToggle />
         </div>
         <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/rep_logo.png" 
+              alt="Rep Recon Logo" 
+              className="h-16 w-auto object-contain border border-gray-300 dark:border-gray-600 rounded-lg"
+            />
+          </div>
           <h1 className="text-3xl font-bold">Rep Recon</h1>
           <p className="mt-2 text-muted-foreground">Create a new account</p>
         </div>

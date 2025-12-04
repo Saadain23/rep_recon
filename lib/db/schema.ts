@@ -42,8 +42,7 @@ export const sessions = pgTable("sessions", {
 export const reports = pgTable("reports", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "set null" }), // Optional: tracks who created the report, but reports are shared
   input: text("input").notNull(), // Original input/query that triggered the assessment
   reportData: jsonb("report_data").notNull(), // Complete workflow report data including all analysis results
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),

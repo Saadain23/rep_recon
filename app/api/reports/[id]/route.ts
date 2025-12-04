@@ -27,11 +27,11 @@ export async function GET(
       )
     }
 
-    // Get the report
+    // Get the report - reports are now visible to all authenticated users
     const [report] = await db
       .select()
       .from(reports)
-      .where(and(eq(reports.id, id), eq(reports.userId, user.userId)))
+      .where(eq(reports.id, id))
       .limit(1)
 
     if (!report) {

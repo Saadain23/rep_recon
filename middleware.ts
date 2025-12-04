@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth/middleware";
 
 // Routes that don't require authentication
-const publicRoutes = ["/login", "/signup"];
+const publicRoutes = ["/", "/login", "/signup"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,9 +17,9 @@ export async function middleware(request: NextRequest) {
   // Check authentication
   const user = await getAuthUser(request);
 
-  // Redirect authenticated users away from auth pages to home
+  // Redirect authenticated users away from auth pages to assessment agent (chat page)
   if (isPublicRoute && user) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/assessment-agent", request.url));
   }
 
   // Redirect unauthenticated users to login

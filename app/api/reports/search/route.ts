@@ -39,20 +39,18 @@ export const GET = withAuth(async (req: AuthRequest) => {
     const domainPattern = `%${domainQuery}%`
     
     // Search in reportData JSON fields: product.productName, product.vendorName, product.websiteUrl
-    const whereCondition = and(
-      eq(reports.userId, user.userId),
-      or(
-        // Direct product name match (highest priority)
-        sql`${reports.reportData}->'product'->>'productName' ILIKE ${searchPattern}`,
-        // Vendor name match
-        sql`${reports.reportData}->'product'->>'vendorName' ILIKE ${searchPattern}`,
-        // Domain/website URL match
-        sql`${reports.reportData}->'product'->>'websiteUrl' ILIKE ${domainPattern}`,
-        // Fallback to input field
-        ilike(reports.input, searchPattern),
-        // General text search in reportData (lowest priority)
-        sql`${reports.reportData}::text ILIKE ${searchPattern}`
-      )!
+    // Reports are now visible to all authenticated users
+    const whereCondition = or(
+      // Direct product name match (highest priority)
+      sql`${reports.reportData}->'product'->>'productName' ILIKE ${searchPattern}`,
+      // Vendor name match
+      sql`${reports.reportData}->'product'->>'vendorName' ILIKE ${searchPattern}`,
+      // Domain/website URL match
+      sql`${reports.reportData}->'product'->>'websiteUrl' ILIKE ${domainPattern}`,
+      // Fallback to input field
+      ilike(reports.input, searchPattern),
+      // General text search in reportData (lowest priority)
+      sql`${reports.reportData}::text ILIKE ${searchPattern}`
     )!
 
     // Get matching reports (limited for quick suggestions)
